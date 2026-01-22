@@ -4,182 +4,411 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>utube downloader</title>
+    <title>Converter</title>
+    <link rel="icon" type="image/x-icon" href="image/curren.jpg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.2/iframeResizer.min.js"></script>
-
     <style>
         body {
             background-color: #f8f9fa;
+            font-family: 'Segoe UI', sans-serif;
         }
 
-        .iframe-container {
-            width: 100%;
-            overflow: hidden;
-            border: 0;
+        .main-card {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 0 15px;
         }
 
-        #singleApiFrame {
-            min-height: 100px;
+        .input-group {
+            border: 2px solid transparent;
+            border-radius: 0.375rem;
+            transition: border-color 0.3s ease;
         }
 
-        #buttonApi {
-            min-height: 60px;
+        .input-group.drag-over {
+            border-color: #0d6efd;
+            background-color: #f0f6ff;
         }
 
-        #widgetApi,
-        #widgetv2Api {
-            min-height: 400px;
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-online {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .status-offline {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+
+        @media (max-width: 768px) {
+            .main-card {
+                max-width: 100%;
+            }
+
+            #thumbnail {
+                max-height: 150px !important;
+            }
+
+            .row.mb-4 {
+                flex-direction: column;
+            }
+
+            .col-md-6 {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
         }
     </style>
 </head>
 
 <body>
-
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-5">
         <div class="container">
-            <a class="navbar-brand" href="#"><i class="bi bi-cloud-download"></i> UtubeDL</a>
+            <a class="navbar-brand" href="#"><i class="bi bi-cloud-download-fill"></i> Vague Converter</a>
         </div>
     </nav>
 
     <div class="container">
+        <div class="main-card">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
 
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body p-4">
-                        <h2 class="card-title text-center mb-4">YouTube to MP3/MP4 Converter</h2>
-                        <div class="alert alert-info d-flex align-items-center" role="alert">
-                            <div>
-                                <i class="bi bi-info-circle-fill me-2"></i>
-                                Enter a video URL and select the desired format to see the different converter options
-                                below.
+                    <div class="text-center mb-4">
+                        <i class="bi bi-youtube text-danger" style="font-size: 3rem;"></i>
+                        <h2 class="fw-bold">utube Downloader</h2>
+                    </div>
+
+                    <div id="connectionStatus" class="status-indicator status-online mb-3"
+                        style="justify-content: center;">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Online & Working</span>
+                    </div>
+
+                    <form id="converterForm" onsubmit="handleConvert(event)">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Video URL</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-white"><i class="bi bi-link-45deg"></i></span>
+                                <input type="text" class="form-control" id="videoUrl" placeholder="Paste link here..."
+                                    required onchange="fetchVideoInfo()" oninput="debounceVideoInfo()">
                             </div>
                         </div>
 
-                        <form id="converterForm" onsubmit="event.preventDefault(); updateConverters();">
-                            <div class="row g-3">
-                                <div class="col-md-8">
-                                    <label for="videoUrl" class="form-label">Video URL</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
-                                        <input type="text" class="form-control" id="videoUrl"
-                                            placeholder="https://www.youtube.com/watch?v=..."
-                                            value="https://www.youtube.com/watch?v=dQw4w9WgXcQ">
-                                    </div>
-                                    <div class="form-text">Supports YouTube, SoundCloud, TikTok, Facebook, etc.</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="formatType" class="form-label">Format (Button APIs)</label>
-                                    <select class="form-select" id="formatType">
-                                        <option value="mp3" selected>MP3 (Audio)</option>
-                                        <option value="mp4">MP4 (Video)</option>
-                                        <option value="webm">WebM</option>
-                                    </select>
-                                </div>
-                                <div class="col-12 mt-4">
-                                    <button type="button" class="btn btn-primary w-100 py-2"
-                                        onclick="updateConverters()">
-                                        <i class="bi bi-arrow-repeat"></i> Update All Converters
-                                    </button>
+                        <div id="previewSection" style="display: none;" class="mb-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <img id="thumbnail" src="" alt="Thumbnail" class="img-fluid rounded mb-3"
+                                        style="max-height: 200px; object-fit: cover; width: 100%;">
+                                    <h6 class="card-title fw-bold">Video Title:</h6>
+                                    <p id="videoTitle" class="text-muted mb-0"></p>
                                 </div>
                             </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-
-            <div class="col-12 mb-4">
-                <div class="card h-100 shadow-sm border-primary">
-                    <div class="card-header bg-transparent border-primary text-primary fw-bold">
-                        1. Single Button API
-                    </div>
-                    <div class="card-body d-flex align-items-center justify-content-center bg-light">
-                        <iframe id="singleApiFrame" src="" class="iframe-container" allowtransparency="true"
-                            scrolling="no">
-                        </iframe>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-12 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-header fw-bold">
-                        2. Button API (Auto-Resizing)
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="p-4 bg-light text-center">
-                            <iframe id="buttonApi" src="" class="iframe-container" allowtransparency="true"
-                                scrolling="no">
-                            </iframe>
                         </div>
-                    </div>
+
+                        <div id="playlistWarning" style="display: none;"
+                            class="alert alert-warning alert-dismissible fade show mb-4">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Playlist Detected!</strong> Only this video will be downloaded. Playlist parameters
+                            will be removed.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+
+                        <div id="loadingSpinner" style="display: none;" class="mb-4">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="text-muted mt-2">Fetching video info...</p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Format</label>
+                                <select class="form-select form-select-lg" id="formatType" onchange="toggleQuality()">
+                                    <option value="mp3">MP3 (Audio)</option>
+                                    <option value="mp4">MP4 (Video)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Quality</label>
+                                <select class="form-select form-select-lg" id="videoQualityType" style="display: none;">
+                                    <option value="1080">1080p</option>
+                                    <option value="720">720p</option>
+                                    <option value="480">480p</option>
+                                </select>
+                                <select class="form-select form-select-lg" id="mp3QualityType" style="display: none;">
+                                    <option value="320">320 kbps</option>
+                                    <option value="256">256 kbps</option>
+                                    <option value="192">192 kbps</option>
+                                    <option value="128">128 kbps</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="convertBtn" class="btn btn-primary w-100 btn-lg py-3 fw-bold">
+                            <i class="bi bi-download me-2"></i> Convert & Download
+                        </button>
+                    </form>
+
+                    <div id="statusArea" class="mt-4" style="display: none;"></div>
+
                 </div>
             </div>
-
-            <div class="col-md-6 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-header fw-bold">
-                        3. Widget API
-                    </div>
-                    <div class="card-body p-0">
-                        <iframe id="widgetApi" src="" class="iframe-container" allowtransparency="true" scrolling="no">
-                        </iframe>
-                    </div>
-                </div>
+            <div class="text-center mt-4 text-muted"><small>Halimaw.</small>
             </div>
-
-            <div class="col-md-6 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-header fw-bold">
-                        4. Widget v2 API
-                    </div>
-                    <div class="card-body p-0">
-                        <iframe id="widgetv2Api" src="" class="iframe-container" allowtransparency="true"
-                            scrolling="no">
-                        </iframe>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
 
-    <footer class="bg-light text-center text-lg-start mt-5 border-top">
-        <div class="text-center p-3 text-muted">
-            &copy; 2026 Vague-ex. Powered by <a href="https://convert2mp3s.com/" target="_blank">Convert2mp3s API</a>.
-        </div>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
     <script>
-        window.onload = function () {
-            updateConverters();
-        };
-        function updateConverters() {
-            const url = document.getElementById('videoUrl').value.trim();
-            const type = document.getElementById('formatType').value;
+        let debounceTimer;
+        const BACKEND_URL = 'https://noncommittal-ballistically-darcy.ngrok-free.dev';
+
+        // Check backend connection on load
+        async function checkBackendConnection() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/get-video-info`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ url: '' })
+                });
+                setConnectionStatus(true);
+            } catch (error) {
+                setConnectionStatus(false);
+            }
+        }
+
+        function setConnectionStatus(online) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (online) {
+                statusEl.className = 'status-indicator status-online mb-3';
+                statusEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> <span>Online & Working</span>';
+            } else {
+                statusEl.className = 'status-indicator status-offline mb-3';
+                statusEl.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i> <span>Offline</span>';
+            }
+        }
+
+        // Setup drag and drop
+        function setupDragDrop() {
+            const urlInput = document.getElementById('videoUrl');
+            const inputGroup = urlInput.parentElement;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                inputGroup.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                inputGroup.addEventListener(eventName, () => {
+                    inputGroup.classList.add('drag-over');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                inputGroup.addEventListener(eventName, () => {
+                    inputGroup.classList.remove('drag-over');
+                }, false);
+            });
+
+            inputGroup.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const text = dt.getData('text/plain');
+                if (text) {
+                    urlInput.value = text.trim();
+                    urlInput.dispatchEvent(new Event('oninput'));
+                    fetchVideoInfo();
+                }
+            }, false);
+        }
+
+        function debounceVideoInfo() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(fetchVideoInfo, 1000);
+        }
+
+        function checkPlaylistWarning() {
+            const urlInput = document.getElementById('videoUrl');
+            const url = urlInput.value.trim();
+            const playlistWarning = document.getElementById('playlistWarning');
+
+            if (url.includes('list=') && url.includes('index=')) {
+                playlistWarning.style.display = 'block';
+            } else {
+                playlistWarning.style.display = 'none';
+            }
+        }
+
+        async function fetchVideoInfo() {
+            const urlInput = document.getElementById('videoUrl');
+            const url = urlInput.value.trim();
+            const previewSection = document.getElementById('previewSection');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+
+            checkPlaylistWarning();
+
             if (!url) {
-                alert("Please enter a video URL");
+                previewSection.style.display = 'none';
+                loadingSpinner.style.display = 'none';
                 return;
             }
-            const baseUrl = "https://convert2mp3s.com/api";
-            document.getElementById('singleApiFrame').src = `${baseUrl}/single/${type}?url=${url}`;
-            document.getElementById('buttonApi').src = `${baseUrl}/button/${type}?url=${url}`;
-            document.getElementById('widgetApi').src = `${baseUrl}/widget?url=${url}`;
-            document.getElementById('widgetv2Api').src = `${baseUrl}/widgetv2?url=${url}`;
-            setTimeout(() => {
-                const options = { log: false, checkOrigin: false };
-                iFrameResize({ ...options, minHeight: 60 }, '#buttonApi');
-                iFrameResize({ ...options, minHeight: 400 }, '#widgetApi');
-                iFrameResize({ ...options, minHeight: 400 }, '#widgetv2Api');
-            }, 500);
+
+            loadingSpinner.style.display = 'block';
+            previewSection.style.display = 'none';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/get-video-info`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                if (!response.ok) {
+                    previewSection.style.display = 'none';
+                    loadingSpinner.style.display = 'none';
+                    return;
+                }
+
+                const data = await response.json();
+                document.getElementById('thumbnail').src = data.thumbnail;
+                document.getElementById('videoTitle').textContent = data.title;
+                loadingSpinner.style.display = 'none';
+                previewSection.style.display = 'block';
+
+            } catch (error) {
+                console.warn("Could not fetch video info:", error);
+                previewSection.style.display = 'none';
+                loadingSpinner.style.display = 'none';
+            }
         }
+
+        function toggleQuality() {
+            const format = document.getElementById('formatType').value;
+            const videoQuality = document.getElementById('videoQualityType');
+            const mp3Quality = document.getElementById('mp3QualityType');
+
+            if (format === 'mp3') {
+                videoQuality.style.display = 'none';
+                mp3Quality.style.display = 'block';
+            } else {
+                videoQuality.style.display = 'block';
+                mp3Quality.style.display = 'none';
+            }
+        }
+
+        async function handleConvert(event) {
+            event.preventDefault();
+            const urlInput = document.getElementById('videoUrl');
+            let finalUrl = urlInput.value.trim();
+
+            if (finalUrl.includes('list=')) {
+                try {
+                    const urlObj = new URL(finalUrl);
+                    urlObj.searchParams.delete('list');
+                    urlObj.searchParams.delete('index');
+                    urlObj.searchParams.delete('start_radio');
+                    finalUrl = urlObj.toString();
+                    console.log("Playlist detected. Cleaning URL to:", finalUrl);
+                } catch (e) {
+                    console.warn("Could not clean URL parameters:", e);
+                }
+            }
+
+            const format = document.getElementById('formatType').value;
+            const quality = format === 'mp3'
+                ? document.getElementById('mp3QualityType').value
+                : document.getElementById('videoQualityType').value;
+            const btn = document.getElementById('convertBtn');
+            const statusArea = document.getElementById('statusArea');
+            if (!finalUrl) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
+            statusArea.style.display = 'none';
+
+            try {
+                const backendUrl = `${BACKEND_URL}/convert`;
+                showStatus('Converting your ' + format.toUpperCase() + '...', 'info');
+
+                const response = await fetch(backendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ url: finalUrl, format: format, quality: quality })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "Server Error");
+                }
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+
+                let filename = `download.${format}`;
+
+                const customFilename = response.headers.get('X-Filename');
+                if (customFilename) {
+                    filename = customFilename;
+                } else {
+                    const contentDisp = response.headers.get('Content-Disposition');
+                    if (contentDisp) {
+                        const match = contentDisp.match(/filename\s*=\s*(?:"([^"]*)"|([^;\s]*))/);;
+                        if (match && (match[1] || match[2])) {
+                            filename = match[1] || match[2];
+                        }
+                    }
+                }
+
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(downloadUrl);
+                showStatus('✓ Download started! File: ' + filename, 'success');
+
+            } catch (error) {
+                showStatus("Error: " + error.message, "danger");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-download me-2"></i> Convert & Download';
+            }
+        }
+        function showStatus(msg, type) {
+            const area = document.getElementById('statusArea');
+            area.style.display = 'block';
+            area.className = `mt-4 alert alert-${type}`;
+            area.innerText = msg;
+        }
+
+        toggleQuality();
+        setupDragDrop();
+        checkBackendConnection();
     </script>
 </body>
 
