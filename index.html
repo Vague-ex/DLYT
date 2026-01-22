@@ -132,7 +132,15 @@
                                 <p class="text-muted mt-2">Fetching video info...</p>
                             </div>
                         </div>
-
+                        
+                        <div id="progressSection" style="display: none;" class="mb-4">
+                            <div class="progress" style="height: 25px;">
+                                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                                    role="progressbar" style="width: 0%">0%</div>
+                            </div>
+                            <p id="progressText" class="text-center text-muted mt-2 small">Starting download...</p>
+                        </div>
+                        
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Format</label>
@@ -413,3 +421,4 @@
 </body>
 
 </html>
+
